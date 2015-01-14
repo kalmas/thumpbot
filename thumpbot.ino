@@ -3,39 +3,42 @@
 
 SoftwareSerial mySerial(7, 8);
 
-const int pingPin = 6;
+// Switch to control on/off.
 const int switchPin = 3;
 
-int switchState = 0; 
+// Direction.
+int d1, d2;
+// Speed.
+int s1, s2;
+// Quadrant (not used).
+int qA, qB;
 
-bool wasTooClose = false;
-byte rcData[2];
-int d1,d2;
-int s1,s2;
-int qA,qB;
-int p = 0; //ping loop flip flop
-// establish variables for duration of the ping,
-// and the distance result in inches and centimeters:
+// Pin for gending/recieving ping from proximity sensor.
+const int pingPin = 6;
+// Establish variables for duration of the ping,
+// and the distance result in inches and centimeters.
 long duration, cm;
 
-Servo myservo;  // create servo object to control a servo 
-                // a maximum of eight servo objects can be created 
- 
-int pos = 90;    // variable to store the servo position 
+// Servo for ping mount.
+Servo myservo; 
+// Servo postion.  
 int cpos = 90;
-int prepos = 0;
+int prevpos = 0;
 
 void setup()
 {
- pinMode(switchPin, INPUT); 
-// initialize serial communication:
-/////////////////////////////////////////////////////////////////////
- Serial.begin(9600);
- mySerial.begin(19200);
- myservo.attach(9);  // attaches the servo on pin 9 to the servo object 
- myservo.write(90);
- delay(200);
- //myservo.detach();
+  pinMode(switchPin, INPUT); 
+  
+  Serial.begin(9600);
+  
+  mySerial.begin(19200);
+
+  // Attaches the servo on pin 9 to the servo object.
+  myservo.attach(9);
+  // Turn to center.
+  myservo.write(cpos);
+  delay(200);
+  myservo.detach();
 }
 /////////////////////////////////////////////////////////////////////
 
@@ -72,187 +75,177 @@ void setup()
 
 //// Main Loop
 /////////////////////////////////////////////////////////////////////
-void loop(){
-  
-switchState = digitalRead(switchPin);
+void loop() {
 
- if(switchState == HIGH){
-   myservo.attach(9);   
-   moveDatServo();
-   //go();
-  
-  //ping();
-//  Serial.print(cm);
-//  Serial.print("/n");
-  
-//    if (cm < 20){
-//      goRoundThatBitch();
-//      delay(100);
-//    }  
- }else{
-   noGOGO();
-   myservo.detach();
- }
- 
-    getVal();
-    readBack();
-    rcGOGO();    
- 
+  int switchState = digitalRead(switchPin);
+
+  if (switchState == HIGH) {
+    myservo.attach(9);
+
+    moveDatServo();
+    avoidCollision();
+
+    readAndGo();
+
+    myservo.detach();
+  } else {
+
+    noGOGO();
+  }
 }
 /////////////////////////////////////////////////////////////////////
 
 ////// RC motor Controls ///////
 /////////////////////////////////////////////////////////////////////
-void getVal(){
-mySerial.write(0x87);
-mySerial.write(0x03);
-delay(10);
+void readAndGo () {
+  // Data from RC reciever.
+  byte rcData[2];
+
+  // Get remapped channel input values.
+  mySerial.write(0x87);
+  // Ask for first 2 channels (Motor 1 and 2).
+  mySerial.write(0x03);
+  delayMicroseconds(250);
+
+  for (int j = 0; j < 2; j++ ) {
+    int x = mySerial.read();
+    rcData[j] = x;
+  }
+
+  if (rcData[0] > 127) {
+    d1 = 0xC5;    //motor 1 backward acc
+    //d1 = 0xC1;  //motor 1 backward set
+    s1 = rcData[0] - 127;
+  } else {
+    d1 = 0xC6;    //motor 1 forward acc function
+    //d1 = 0xC2;  //motor 1 forward 'set' function
+    s1 = rcData[0];
+  }
+  
+  if (rcData[1] > 127) {
+    d2 = 0xCE;    //M2 forward acc function
+    //d2 = 0xCA;  //M2 forward 'set' function
+    s2 = rcData[1] -127;
+  } else {
+    d2 = 0xCD;    // M2 backward acc
+    //d2 = 0xC9;  // M2 backward set
+    s2 = rcData[1];
+  }
+
+  rcGOGO(d1, s1, d2, s2);
 }
 
-void readBack(){
-      for ( int j = 0; j < 2; j++ ) { // Loop 4 times
-        int x = mySerial.read();
-        rcData[j] = x;
-        delay(10);
-    }
+void rcGOGO(int d1, int s1, int d2, int s2) {
+  //motor 1
+  mySerial.write(d1);
+  mySerial.write(s1);
 
+  //motor2
+  mySerial.write(d2);
+  mySerial.write(s2);
 }
-/////////////////////////////////////////////////////////////////////
-void rcGOGO(){
 
-  if (rcData[0] > 127){
-      d1 = 0xC5; //motor 1 backward acc
-      //d1 = 0xC1; //motor 1 backward set
-      s1 = rcData[0] - 127;
-  }
-  
-  if (rcData[0] < 126) {
-      d1 = 0xC6; //motor 1 forward acc function
-      //d1 = 0xC2; //motor 1 forward 'set' function
-      s1 = rcData[0];
-  }
-  
-  if (rcData[1] > 127){
-      d2 = 0xCE; //M2 forward acc function
-      //d2 = 0xCA; //M2 forward 'set' function
-      s2 = rcData[1] -127;
-  }
-  
-  if (rcData[1] < 126){
-      d2 = 0xCD; // M2 backward acc
-      //d2 = 0xC9; // M2 backward set
-      s2 = rcData[1];
-  }
-  
-//motor 1
-mySerial.write(d1);
-//mySerial.write(32);
-mySerial.write(s1);
-
-//motor2
-mySerial.write(d2);
-//mySerial.write(32);
-mySerial.write(s2);
-//delay(10);
-}
 /////////////////////////////////////////////////////////////////////
 
 ////// Ultra Sonic Sensor cmds ///////
 /////////////////////////////////////////////////////////////////////
-long microsecondsToCentimeters(long microseconds){
-return microseconds / 29 / 2;
+long microsecondsToCentimeters(long microseconds) {
+  
+  return microseconds / 29 / 2;
 }
 
-void ping(){
+void ping() {
 
-pinMode(pingPin, OUTPUT);
-digitalWrite(pingPin, LOW);
-delayMicroseconds(2);
-digitalWrite(pingPin, HIGH);
-delayMicroseconds(5);
-digitalWrite(pingPin, LOW);
+  pinMode(pingPin, OUTPUT);
+  digitalWrite(pingPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(pingPin, HIGH);
+  delayMicroseconds(5);
+  digitalWrite(pingPin, LOW);
 
-pinMode(pingPin, INPUT);
-duration = pulseIn(pingPin, HIGH);
+  pinMode(pingPin, INPUT);
+  duration = pulseIn(pingPin, HIGH);
 
-cm = microsecondsToCentimeters(duration);
-
-delay(1);
+  cm = microsecondsToCentimeters(duration);
 }
+
 /////////////////////////////////////////////////////////////////////
 
 ///// servo comands /////////
 /////////////////////////////////////////////////////////////////////
-void moveDatServo(){
-  if (cpos == 90){
-   for (p = 0 ; p < 3; p++){    
-    delay(10);
-    ping();
-      if (cm < 60){
-         goBackCheck();
-         delay(500);
-      }
-   }   
-  }
-    if (cpos == 110){  
-    delay(10);
-    ping();
-      if (cm < 75){
-         turnRight();
-         delay(90);
-      }
-  }
-
-  if (cpos == 50){
-      delay(10);
-      ping();
-
-
-      if (cm < 75){
-         turnLeft();
-         delay(90);
-      }
-  }   
+void moveDatServo() {
   
-  if (cpos == 140){  
-    delay(10);
-    ping();
-
-      prepos = 141;
-      cpos = 130;
-      
-      if (cm < 70){
-         turnRight();
-         delay(150);
-      }
-
-  }   
-  else if (cpos == 20){
-      delay(10);  
-      ping();
-
-      prepos = 19;
-      cpos = 30;
-
-      if (cm < 70){
-         turnLeft();
-         delay(150);
-      }
+  if (cpos == 140) {
+    // Left most edge.
+    prevpos = 141;
+    cpos = 130;
+  } else if (cpos == 20) {
+    // Right most edge.
+    prevpos = 19;
+    cpos = 30;
+  } else if (prevpos < cpos && cpos < 140) {
+    // We're moving counter clockwise toward 140.
+    prevpos = cpos;
+    cpos = cpos + 10;
+    myservo.write(cpos);
+  } else if (prevpos > cpos && cpos > 20) {
+    // We're moving clockwise toward 20.
+    prevpos = cpos;
+    cpos = cpos - 10;  
+    myservo.write(cpos);
   }
-  else if (prepos < cpos && cpos < 140){
-      prepos = cpos;
-      cpos = cpos+10;
-      myservo.write(cpos);
-      delay(10);
-  }
-  else if (prepos > cpos && cpos > 20){   
-      prepos = cpos;
-      cpos = cpos-10;  
-      myservo.write(cpos);
-      delay(10);
-  } 
-delay(20);   
+  
+  delay(30);
 }
+
+void avoidCollision() {
+
+  if (cpos == 90) {
+    
+    ping();
+    if (cm < 60) {
+      // Hazard ahead!
+      goBackCheck();
+      delay(500);
+    }  
+  } else if (cpos == 110) {  
+    
+    ping();
+    if (cm < 75) {
+      // Hazard to left!
+      turnRight();
+      delay(90);
+    }
+  } else if (cpos == 50) {
+
+    ping();
+    if (cm < 75) {
+      // Hazard to right!
+      turnLeft();
+      delay(90);
+    }
+  } else if (cpos == 140) {  
+
+    ping();
+    if (cm < 70) {
+      // Hazard to far left!
+      turnRight();
+      delay(150);
+    }
+  } else if (cpos == 20) {
+
+    ping();
+    if (cm < 70) {
+      // Hazard to far right!
+      turnLeft();
+      delay(150);
+    }
+  }
+}
+
+
+
+
 /////////////////////////////////////////////////////////////////////
 
 ///////// Generic Move Commands //////////
@@ -458,6 +451,7 @@ void goRoundThatBitch(){
 /////////////////////////////////////////////////////////////////////
 void whoDatIs()
 {
+int pos = 0;
 Serial.print("cm = ");
 Serial.print(cm);
 Serial.print('\n');  
@@ -513,3 +507,13 @@ mySerial.write(0xCD);
 mySerial.write(0x20);
 }
 /////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
