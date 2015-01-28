@@ -68,94 +68,22 @@ void setup()
 //// Main Loop
 /////////////////////////////////////////////////////////////////////
 void loop() {
-  int switchState = digitalRead(switchPin);
-  if (switchState == HIGH) {
+  
+  if (digitalRead(switchPin) == HIGH) {
     
-    //xyGoGo();
+    myservo.attach(9);
     
-    // myservo.attach(9);
-    // moveDatServo();
-    // avoidCollision();
-    // readAndGo();
-    // go();
-    // myservo.detach();
+    moveDatServo();
+    avoidCollision();
+    
+    readAndGo();
+    go();
+    myservo.detach();
   } else {
     noGOGO();
   }
 }
-void xyGoGo(){
-  int incomingByte = 0;
-  
-  // send data only when you receive data:
-  while(Serial.available()) {
-    // read the incoming byte:
-    incomingByte = Serial.read();
-    
-    if(incomingByte == 119) {
-      // up
-      y = y + 5;
-    } else if(incomingByte == 97) {
-      // left
-      x = x - 5;
-    } else if(incomingByte == 115) {
-      // down
-      y = y - 5;
-    } else if(incomingByte == 100) {
-      //right
-      x = x + 5;
-    }
-    
-    if(x < -125) {
-      x = -125;
-    } else if(x > 125) {
-      x = 125;
-    }
-    
-    if(y < -125) {
-      y = -125;
-    } else if(y > 125) {
-      y = 125;
-    }
-  }
-  
-  if (y != oldY || x != oldX) {
-    
-    Serial.println("================================");
-    
-    Serial.print(x, DEC);
-    Serial.print(", ");
-    Serial.println(y, DEC);
-    
-    
-    if(y > 0) {
-      d1 = 0xC5;
-      d2 = 0xCE;
-    } else if(y < 0) {
-      d2 = 0xC5;
-      d1 = 0xCE;
-    } else {
-      d1 = 0xC5;
-      d2 = 0xCE;
-    }
-    
-//    Serial.println("================================");
-    
-//    if(x != 0){
-//    
-//      float ratio = (1 / abs(x));
-//      
-//      s1 = abs(y) * ratio;
-//      s2 = abs(y);
-//    }
-//    
-      s1 = 50;
-      s2 = 50;
-    //rcGOGO(d1, (int)s1, d2, (int)s2);
-    rcGOGO(d1, s1, d2, s2);
-  }
-  oldX = x;
-  oldY = y;
-}
+
 /////////////////////////////////////////////////////////////////////
 ////// RC motor Controls ///////
 /////////////////////////////////////////////////////////////////////
@@ -502,3 +430,6 @@ mySerial.write(0xCD);
 mySerial.write(0x20);
 }
 /////////////////////////////////////////////////////////////////////
+
+
+
