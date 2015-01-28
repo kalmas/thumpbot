@@ -94,6 +94,7 @@ void xyGoGo() {
   while (Serial.available()) {
     // read the incoming byte:
     incomingByte = Serial.read();
+    Serial.println(incomingByte);
     
     if(incomingByte == 119) {
       
@@ -113,17 +114,8 @@ void xyGoGo() {
       x = x + 5;
     }
     
-    if(x < -125) {
-      x = -125;
-    } else if(x > 125) {
-      x = 125;
-    }
-    
-    if(y < -125) {
-      y = -125;
-    } else if(y > 125) {
-      y = 125;
-    }
+    x = getRestrained(x);
+    y = getRestrained(y);
   }
   
   if (y != oldY || x != oldX) {
@@ -148,7 +140,7 @@ void xyGoGo() {
       d1 = 0xCD;
     }
     
-    if (x > -1 && x < 1) {
+    if (x > -32 && x < 32) {
       
       // center lane
       s1 = abs(y);
@@ -157,7 +149,7 @@ void xyGoGo() {
       
       double ratio =  1 / (abs(x) * 0.03149);
       
-      if (x < -1) {
+      if (x < 0) {
         
         s1 = (abs(y) * ratio);
         s2 = (abs(y));
@@ -172,13 +164,29 @@ void xyGoGo() {
     Serial.println(s2);
     Serial.println("================================");
 
-    rcGOGO(d1, (int)s1, d2, (int)s2);
+    s1 = getRestrained((int) s1);
+    s2 = getRestrained((int) s2);
+    
+    rcGOGO(d1, s1, d2, s2);
   }
   
   oldX = x;
   oldY = y;
 }
 
+
+int getRestrained(int value) {
+  
+    if(value < -125) {
+      return -125;
+    }
+    
+    if(x > 125) {
+      return 125;
+    }
+    
+    return value;
+}
 
 /////////////////////////////////////////////////////////////////////
 ////// RC motor Controls ///////
