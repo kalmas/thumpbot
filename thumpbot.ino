@@ -9,10 +9,12 @@ int d1, d2;
 int s1, s2;
 // Quadrant (not used).
 int qA, qB;
+
 int x = 0;
 int y = 0;
 int oldX = 0;
 int oldY = 0;
+
 // Pin for gending/recieving ping from proximity sensor.
 const int pingPin = 6;
 // Establish variables for duration of the ping,
@@ -71,7 +73,7 @@ void loop() {
   int switchState = digitalRead(switchPin);
   if (switchState == HIGH) {
     
-    //xyGoGo();
+    xyGoGo();
     
     // myservo.attach(9);
     // moveDatServo();
@@ -83,24 +85,30 @@ void loop() {
     noGOGO();
   }
 }
-void xyGoGo(){
+
+
+void xyGoGo() {
   int incomingByte = 0;
   
   // send data only when you receive data:
-  while(Serial.available()) {
+  while (Serial.available()) {
     // read the incoming byte:
     incomingByte = Serial.read();
     
     if(incomingByte == 119) {
+      
       // up
       y = y + 5;
     } else if(incomingByte == 97) {
+      
       // left
       x = x - 5;
     } else if(incomingByte == 115) {
+      
       // down
       y = y - 5;
     } else if(incomingByte == 100) {
+      
       //right
       x = x + 5;
     }
@@ -122,40 +130,56 @@ void xyGoGo(){
     
     Serial.println("================================");
     
+    Serial.print("x: ");
     Serial.print(x, DEC);
     Serial.print(", ");
+    Serial.print("y: ");
     Serial.println(y, DEC);
     
-    
-    if(y > 0) {
+    if (y > 0) {
+      
+      // forward
       d1 = 0xC5;
       d2 = 0xCE;
-    } else if(y < 0) {
-      d2 = 0xC5;
-      d1 = 0xCE;
     } else {
-      d1 = 0xC5;
-      d2 = 0xCE;
+      
+      // back
+      d2 = 0xC6;
+      d1 = 0xCD;
     }
     
-//    Serial.println("================================");
+    if (x > -1 && x < 1) {
+      
+      // center lane
+      s1 = abs(y);
+      s2 = abs(y);
+    } else {
+      
+      double ratio =  1 / (abs(x) * 0.03149);
+      
+      if (x < -1) {
+        
+        s1 = (abs(y) * ratio);
+        s2 = (abs(y));
+      } else {
+        
+        s1 = (abs(y));
+        s2 = (abs(y) * ratio);
+      }
+    }
     
-//    if(x != 0){
-//    
-//      float ratio = (1 / abs(x));
-//      
-//      s1 = abs(y) * ratio;
-//      s2 = abs(y);
-//    }
-//    
-      s1 = 50;
-      s2 = 50;
-    //rcGOGO(d1, (int)s1, d2, (int)s2);
-    rcGOGO(d1, s1, d2, s2);
+    Serial.println(s1);
+    Serial.println(s2);
+    Serial.println("================================");
+
+    rcGOGO(d1, (int)s1, d2, (int)s2);
   }
+  
   oldX = x;
   oldY = y;
 }
+
+
 /////////////////////////////////////////////////////////////////////
 ////// RC motor Controls ///////
 /////////////////////////////////////////////////////////////////////
@@ -193,9 +217,13 @@ void readAndGo () {
   rcGOGO(d1, s1, d2, s2);
 }
 void rcGOGO(int d1, int s1, int d2, int s2) {
+  Serial.print("Direction 1: ");
   Serial.println(d1);
+  Serial.print("Speed 1: ");
   Serial.println(s1);
+  Serial.print("Direction 2: ");
   Serial.println(d2);
+  Serial.print("Speed 2: ");
   Serial.println(s2);
   
   //motor 1
@@ -502,3 +530,4 @@ mySerial.write(0xCD);
 mySerial.write(0x20);
 }
 /////////////////////////////////////////////////////////////////////
+
