@@ -1,8 +1,13 @@
 #include <SoftwareSerial.h>
 #include <Servo.h> 
 SoftwareSerial mySerial(7, 8);
-// Switch to control on/off .
-const int switchPin = 3;
+
+// Switch to toggle on/off.
+const int onSwitch = 3;
+
+// Switch to toggle autopilot.
+const int autopilotSwitch = 4;
+
 // Direction.
 int d1, d2;
 // Speed.
@@ -23,20 +28,7 @@ Servo myservo;
 // Servo postion.  
 int cpos = 90;
 int prevpos = 0;
-void setup()
-{
-  pinMode(switchPin, INPUT); 
-  
-  Serial.begin(9600);
-  
-  mySerial.begin(19200);
-  // Attaches the servo on pin 9 to the servo object.
-  myservo.attach(9);
-  // Turn to center.
-  myservo.write(cpos);
-  delay(200);
-  myservo.detach();
-}
+
 /////////////////////////////////////////////////////////////////////
 ///// Function List ///////
 /////////////////////////////////////////////////////////////////////
@@ -64,23 +56,47 @@ void setup()
 // whoDatIs(); -- old servo scan
 // noGO(); -- old nogo
 // backUp(); -- tells bot to go backward
-/////////////////////////////////////////////////////////////////////
-//// Main Loop
-/////////////////////////////////////////////////////////////////////
-void loop() {
+
+/**
+ * Setup before main loop.
+ */
+void setup()
+{
+  pinMode(onSwitch, INPUT); 
+  pinMode(autopilotSwitch, INPUT); 
   
-  if (digitalRead(switchPin) == HIGH) {
-    
+  Serial.begin(9600);
+  
+  mySerial.begin(19200);
+
+  initServo();
+}
+
+/**
+ * Main loop.
+ */
+void loop()
+{ 
+  if (digitalRead(onSwitch) == HIGH) {
+    // Robot on!
     myservo.attach(9);
     
+    // Look around for obstacles.
     moveDatServo();
     avoidCollision();
     
-    readAndGo();
-    // go();
+    if (digitalRead(autopilotSwitch) == HIGH) {
+      // Auto pilot on!
+      go();
+    } else {
+      // Auto pilot override.
+      readAndGo();
+    }
     myservo.detach();
   } else {
+    initServo();
     noGOGO();
+    while(digitalRead(onSwitch) != HIGH){}
   }
 }
 
@@ -154,6 +170,21 @@ void ping() {
 /////////////////////////////////////////////////////////////////////
 ///// servo comands /////////
 /////////////////////////////////////////////////////////////////////
+
+/**
+ * Move detector servo to look dead ahead.
+ */ 
+void initServo()
+{
+  prevpos = 0;
+  cpos = 90;
+  
+  myservo.attach(9);
+  myservo.write(90);
+  delay(200);
+  myservo.detach();
+}
+
 void moveDatServo() {
   
   if (cpos == 180) {
@@ -176,7 +207,7 @@ void moveDatServo() {
     prevpos = cpos;
     cpos = cpos - 30;  
     myservo.write(cpos);
-  }
+  } 
   
   delay(90);
 }
@@ -224,13 +255,17 @@ void avoidCollision() {
 /////////////////////////////////////////////////////////////////////
 ///////// Generic Move Commands //////////
 /////////////////////////////////////////////////////////////////////
-void go(){
-  
-d1= 0xC5;
-s1= 45;
-d2= 0xCE;
-s2= 45;
-rcGOGO(d1, s1, d2, s2);
+
+/**
+ * Move forward.
+ */
+void go()
+{ 
+  d1 = 0xC5;
+  s1 = 45;
+  d2 = 0xCE;
+  s2 = 45;
+  rcGOGO(d1, s1, d2, s2);
 }
 /////////////////////////////////////////////////////////////////////
 void turnRight(){
@@ -310,15 +345,19 @@ s2= 60;
 //s2= 70;
 rcGOGO(d1, s1, d2, s2);
 }
-/////////////////////////////////////////////////////////////////////
-void noGOGO(){
-  
-d1= 0xC6;
-s1= 0;
-d2= 0xCE;
-s2= 0;
-rcGOGO(d1, s1, d2, s2);
+
+/**
+ * Stop moving and do nothing.
+ */
+void noGOGO()
+{  
+  d1 = 0xC6;
+  s1 = 0;
+  d2 = 0xCE;
+  s2 = 0;
+  rcGOGO(d1, s1, d2, s2);
 }
+
 /////////////////////////////////////////////////////////////////////
 ////////Generic Servo Moves //////////
 /////////////////////////////////////////////////////////////////////
