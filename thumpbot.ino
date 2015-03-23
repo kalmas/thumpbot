@@ -181,7 +181,7 @@ void initServo()
   
   myservo.attach(9);
   myservo.write(90);
-  delay(200);
+  delay(500);
   myservo.detach();
 }
 
