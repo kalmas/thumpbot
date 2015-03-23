@@ -77,7 +77,7 @@ void loop() {
     avoidCollision();
     
     readAndGo();
-    go();
+    // go();
     myservo.detach();
   } else {
     noGOGO();
