@@ -8,6 +8,10 @@ const int onSwitch = 3;
 // Switch to toggle autopilot.
 const int autopilotSwitch = 4;
 
+const int leftLED = 12;
+const int rightLED = 13;
+
+
 // Direction.
 int d1, d2;
 // Speed.
@@ -63,7 +67,9 @@ int prevpos = 0;
 void setup()
 {
   pinMode(onSwitch, INPUT); 
-  pinMode(autopilotSwitch, INPUT); 
+  pinMode(autopilotSwitch, INPUT);
+  pinMode(leftLED, OUTPUT);
+  pinMode(rightLED, OUTPUT);
   
   Serial.begin(9600);
   
@@ -79,17 +85,17 @@ void loop()
 { 
   if (digitalRead(onSwitch) == HIGH) {
     // Robot on!
-    myservo.attach(9);
-    
-    // Look around for obstacles.
-    moveDatServo();
-    avoidCollision();
     
     if (digitalRead(autopilotSwitch) == HIGH) {
       // Auto pilot on!
+      myservo.attach(9);
+      
+      // Look around for obstacles.
+      moveDatServo();
+      avoidCollision();
       go();
     } else {
-      // Auto pilot override.
+      // Manual
       readAndGo();
     }
     myservo.detach();
@@ -217,38 +223,49 @@ void avoidCollision() {
     ping();
     if (cm < 60) {
        //Hazard ahead!
+       digitalWrite(leftLED, HIGH);
+       digitalWrite(rightLED, HIGH);
        goBackCheck();
        delay(600);
-      //goRoundThatBitch();
+       digitalWrite(leftLED, LOW);
+       digitalWrite(rightLED, LOW);
     }  
   } else if (cpos == 120) {  
     
     ping();
     if (cm < 70) {
       // Hazard to left!
+      digitalWrite(leftLED, HIGH);
       turnRight();
       delay(140);
+      digitalWrite(leftLED, LOW);
     }
   } else if (cpos == 60) {
     ping();
     if (cm < 70) {
       // Hazard to right!
+      digitalWrite(rightLED, HIGH);
       turnLeft();
       delay(140);
+      digitalWrite(rightLED, LOW);
     }
   } else if (cpos == 180) {  
     ping();
     if (cm < 55) {
       // Hazard to far left!
+      digitalWrite(leftLED, HIGH);
       turnRight();
       delay(200);
+      digitalWrite(leftLED, LOW);
     }
   } else if (cpos == 0) {
     ping();
     if (cm < 55) {
       // Hazard to far right!
+      digitalWrite(rightLED, HIGH);
       turnLeft();
       delay(200);
+      digitalWrite(rightLED, LOW);
     }
   }
 }
@@ -390,7 +407,7 @@ cmL = cm;
   }
 }
 /////////////////////////////////////////////////////////////////////
-void goRoundThatBitch() { 
+void goRound() { 
   turnLeft();
   delay(950);
   noGOGO();
