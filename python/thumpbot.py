@@ -1,8 +1,9 @@
-import RPi.GPIO as GPIO
+import GPIO as GPIO
 import Serial as Serial
 import Serial as mySerial
 import Servo as myServo
 import time
+import Ping
 
 # # blinking function
 # def blink(pin):
@@ -28,71 +29,146 @@ RIGHT_LED = 13
 SERVO_PIN = 9
 PING_PIN = 6
 
-prevpos = 0
-cpos = 0
+PPOS = 0
+CPOS = 0
 
+def init():
+        PPOS = 0
+        CPOS = 90
 
-def initServo():
-        prevpos = 0
-        cpos = 90
+        GPIO.output(RIGHT_LED, GPIO.HIGH)
+        GPIO.output(LEFT_LED, GPIO.HIGH)
+        time.sleep(.5)
+        GPIO.output(RIGHT_LED, GPIO.LOW)
+        GPIO.output(LEFT_LED, GPIO.LOW)
 
         myServo.attach(SERVO_PIN)
-        myServo.write(90)
+        myServo.goTo(90)
         time.sleep(.5)
         myServo.detach()
 
+        Ping.attach(24)
 
-def distance():
-        # set Trigger to HIGH
-        GPIO.output(PING_PIN, GPIO.HIGH)
 
-        # set Trigger after 0.01ms to LOW
-        time.sleep(0.00001)
-        GPIO.output(PING_PIN, GPIO.LOW)
+def ping():
+        return Ping.distance()
+        # return 42
 
-        startTime = None
-        stopTime = None
 
-        while GPIO.input(PING_PIN) == GPIO.LOW:
-                startTime = time.time()
+def noGOGO():
+        print("NO GO GO!")
 
-        while GPIO.input(PING_PIN) == GPIO.HIGH:
-                stopTime = time.time()
 
-        # time difference between start and arrival
-        timeElapsed = stopTime - startTime
+def GOGO():
+        print("GO GO Forward")
 
-        # multiply with the sonic speed (34300 cm/s)
-        # and divide by 2, because there and back
-        distance = (timeElapsed * 34300) / 2
 
-        return distance
+def goBackLeft():
+        print("GO back left")
+
+
+def goBackRight():
+        print("GO back right")
+
+
+def delay(ms):
+        time.sleep(ms/1000)
+
+
+def lightsOut():
+        GPIO.output(LEFT_LED, GPIO.LOW)
+        GPIO.output(RIGHT_LED, GPIO.LOW)
+
+
+def turnRight(wait):
+        print("TURN right")
+        delay(wait)
+
+
+def turnLeft(wait):
+        print("TURN left")
+        delay(wait)
 
 
 def moveDatServo():
-        if cpos == 180:
-                # Left most edge.
-                prevpos = 181
-                cpos = 150
-                myServo.write(cpos)
-        elif cpos == 0:
-                # Right most edge.
-                prevpos = -1
-                cpos = 30
-                myServo.write(cpos)
-        elif prevpos < cpos anf cpos < 180:
-                # We're moving counter clockwise toward 140.
-                prevpos = cpos
-                cpos = cpos + 30
-                myServo.write(cpos)
-        elif prevpos > cpos and cpos > 0:
-                # We're moving clockwise toward 20.
-                prevpos = cpos
-                cpos = cpos - 30
-                myServo.write(cpos);
+        global CPOS
+        global PPOS
+
+        myServo.attach(SERVO_PIN)
+
+        if CPOS == 180:
+                # Left most edge
+                PPOS = 181
+                CPOS = 150
+                myServo.goTo(CPOS)
+        elif CPOS == 0:
+                # Right most edge
+                PPOS = -1
+                CPOS = 30
+                myServo.goTo(CPOS)
+        elif PPOS < CPOS and CPOS < 180:
+                # We're moving counter clockwise toward 140
+                PPOS = CPOS
+                CPOS = CPOS + 30
+                myServo.goTo(CPOS)
+        elif PPOS > CPOS and CPOS > 0:
+                # We're moving clockwise toward 20
+                PPOS = CPOS
+                CPOS = CPOS - 30
+                myServo.goTo(CPOS)
 
         time.sleep(0.09)
+        myServo.detach()
 
+
+def goBackCheck():
+        noGOGO()
+
+        myServo.goToAndWait(160, 0.25)
+        cmR = ping()
+
+        myServo.goToAndWait(20, 0.25)
+        cmL = ping()
+
+        if cmR > cmL:
+                goBackLeft()
+        else:
+                goBackRight()
+
+        delay(600)
+
+
+
+def avoidCollision():
+        cm = ping()
+        if CPOS == 90:
+                if cm < 60:
+                        # Hazard ahead!
+                        GPIO.output(LEFT_LED, GPIO.HIGH)
+                        GPIO.output(RIGHT_LED, GPIO.HIGH)
+                        goBackCheck()
+        elif CPOS == 120:
+                if cm < 70:
+                        # Hazard to left!
+                        GPIO.output(LEFT_LED, GPIO.HIGH)
+                        turnRight(140)
+        elif CPOS == 60:
+                if cm < 70:
+                        # Hazard to right!
+                        GPIO.output(RIGHT_LED, GPIO.HIGH)
+                        turnLeft(140)
+        elif CPOS == 180:
+                if cm < 55:
+                        # Hazard to far left!
+                        GPIO.output(LEFT_LED, GPIO.HIGH)
+                        turnRight(200)
+        elif CPOS == 0:
+                if cm < 55:
+                        # Hazard to far right!
+                        GPIO.output(RIGHT_LED, GPIO.HIGH)
+                        turnLeft(200)
+
+        lightsOut()
 
 
 GPIO.setmode(GPIO.BOARD)
@@ -104,26 +180,16 @@ GPIO.setup(RIGHT_LED, GPIO.OUT)
 Serial.begin(9600)
 mySerial.begin(19200)
 
-initServo()
-
+init()
 
 while True:
         if GPIO.digitalRead(AUTOPILOT_SWITCH) == GPIO.HIGH:
                 print("Auto pilot engaged!")
-                myServo.attach(SERVO_PIN)
 
                 print("Looking for obstacles")
                 moveDatServo()
-#       avoidCollision();
-#       go();
-#     } else {
-#       // Manual
-#       readAndGo();
-#     }
-#     myservo.detach();
-#   } else {
-#     initServo();
-#     noGOGO();
-#     while(digitalRead(onSwitch) != HIGH){}
-#   }
-
+                avoidCollision()
+                GOGO()
+        else:
+                print("Manual Mode")
+                # readAndGo();

@@ -7,8 +7,8 @@ IN = "IN"
 def output(pin, on):
     print("Pin " + str(pin) + ": " + on)
 
-def output(pin):
-    print("Pin " + str(pin) + ": " + on)
+def input(pin):
+    return HIGH
 
 def setmode(mode):
     print("Mode set:" + mode)
@@ -20,7 +20,7 @@ def cleanup(self):
     print("Cleanup.")
 
 def digitalRead(pin):
-    return GPIO.HIGH
+    return HIGH
 
 def digitalWrite(pin, state):
     print("Pin" + str(pin) + " set to  " + str(state))
