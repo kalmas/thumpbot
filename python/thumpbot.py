@@ -1,26 +1,9 @@
-import GPIO as GPIO
+import RPi.GPIO as GPIO
 import Serial as Serial
 import Serial as mySerial
 import Servo as myServo
 import time
 import Ping
-
-# # blinking function
-# def blink(pin):
-#         GPIO.output(pin,GPIO.HIGH)
-#         time.sleep(1)
-#         GPIO.output(pin,GPIO.LOW)
-#         time.sleep(1)
-#         return
-#
-# # to use Raspberry Pi board pin numbers
-# GPIO.setmode(GPIO.BOARD)
-# # set up GPIO output channel
-# GPIO.setup(11, GPIO.OUT)
-# # blink GPIO17 50 times
-# for i in range(0, 10):
-#         blink(11)
-# GPIO.cleanup()
 
 ON_SWITCH = 3
 AUTOPILOT_SWITCH = 4
@@ -29,12 +12,12 @@ RIGHT_LED = 13
 SERVO_PIN = 9
 PING_PIN = 6
 
-PPOS = 0
-CPOS = 0
+previousPosition = 0
+currentPosition = 0
 
 def init():
-        PPOS = 0
-        CPOS = 90
+        previousPosition = 0
+        currentPosition = 90
 
         GPIO.output(RIGHT_LED, GPIO.HIGH)
         GPIO.output(LEFT_LED, GPIO.HIGH)
@@ -91,31 +74,31 @@ def turnLeft(wait):
 
 
 def moveDatServo():
-        global CPOS
-        global PPOS
+        global currentPosition
+        global previousPosition
 
         myServo.attach(SERVO_PIN)
 
-        if CPOS == 180:
+        if currentPosition == 180:
                 # Left most edge
-                PPOS = 181
-                CPOS = 150
-                myServo.goTo(CPOS)
-        elif CPOS == 0:
+                previousPosition = 181
+                currentPosition = 150
+                myServo.goTo(currentPosition)
+        elif currentPosition == 0:
                 # Right most edge
-                PPOS = -1
-                CPOS = 30
-                myServo.goTo(CPOS)
-        elif PPOS < CPOS and CPOS < 180:
+                previousPosition = -1
+                currentPosition = 30
+                myServo.goTo(currentPosition)
+        elif previousPosition < currentPosition and currentPosition < 180:
                 # We're moving counter clockwise toward 140
-                PPOS = CPOS
-                CPOS = CPOS + 30
-                myServo.goTo(CPOS)
-        elif PPOS > CPOS and CPOS > 0:
+                previousPosition = currentPosition
+                currentPosition = currentPosition + 30
+                myServo.goTo(currentPosition)
+        elif previousPosition > currentPosition and currentPosition > 0:
                 # We're moving clockwise toward 20
-                PPOS = CPOS
-                CPOS = CPOS - 30
-                myServo.goTo(CPOS)
+                previousPosition = currentPosition
+                currentPosition = currentPosition - 30
+                myServo.goTo(currentPosition)
 
         time.sleep(0.09)
         myServo.detach()
@@ -141,28 +124,28 @@ def goBackCheck():
 
 def avoidCollision():
         cm = ping()
-        if CPOS == 90:
+        if currentPosition == 90:
                 if cm < 60:
                         # Hazard ahead!
                         GPIO.output(LEFT_LED, GPIO.HIGH)
                         GPIO.output(RIGHT_LED, GPIO.HIGH)
                         goBackCheck()
-        elif CPOS == 120:
+        elif currentPosition == 120:
                 if cm < 70:
                         # Hazard to left!
                         GPIO.output(LEFT_LED, GPIO.HIGH)
                         turnRight(140)
-        elif CPOS == 60:
+        elif currentPosition == 60:
                 if cm < 70:
                         # Hazard to right!
                         GPIO.output(RIGHT_LED, GPIO.HIGH)
                         turnLeft(140)
-        elif CPOS == 180:
+        elif currentPosition == 180:
                 if cm < 55:
                         # Hazard to far left!
                         GPIO.output(LEFT_LED, GPIO.HIGH)
                         turnRight(200)
-        elif CPOS == 0:
+        elif currentPosition == 0:
                 if cm < 55:
                         # Hazard to far right!
                         GPIO.output(RIGHT_LED, GPIO.HIGH)
