@@ -1,21 +1,25 @@
 import RPi.GPIO as GPIO
 import time
 
-GPIO.setmode(GPIO.BOARD)
 p = None
 
 def convert(degrees):
-    x = degrees / 180
-    y = x * 10
+    print("deg " + str(degrees))
+    x = degrees / 180.0
+    y = x * 10.0
     z = y + 2.5
+
     return z
 
 
 def attach(pin):
     global p
 
+    GPIO.setmode(GPIO.BOARD)
     GPIO.setup(pin, GPIO.OUT)
+	
     p = GPIO.PWM(pin, 50)
+    p.start(convert(90))
     print("Servo attached to pin: " + str(pin))
 
 

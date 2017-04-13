@@ -5,12 +5,13 @@ import Servo as myServo
 import time
 import Ping
 
-ON_SWITCH = 3
-AUTOPILOT_SWITCH = 4
-LEFT_LED = 12
-RIGHT_LED = 13
-SERVO_PIN = 9
-PING_PIN = 6
+PING_PIN = 16
+SERVO_PIN = 18
+
+ON_SWITCH = 22
+AUTOPILOT_SWITCH = 24
+LEFT_LED = 3
+RIGHT_LED = 5
 
 previousPosition = 0
 currentPosition = 0
@@ -156,7 +157,7 @@ def avoidCollision():
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(ON_SWITCH, GPIO.IN)
-GPIO.setup(AUTOPILOT_SWITCH, GPIO.IN)
+
 GPIO.setup(LEFT_LED, GPIO.OUT)
 GPIO.setup(RIGHT_LED, GPIO.OUT)
 
@@ -166,13 +167,14 @@ mySerial.begin(19200)
 init()
 
 while True:
-        if GPIO.digitalRead(AUTOPILOT_SWITCH) == GPIO.HIGH:
-                print("Auto pilot engaged!")
+	GPIO.setup(AUTOPILOT_SWITCH, GPIO.IN)
+	if GPIO.input(AUTOPILOT_SWITCH) == GPIO.HIGH:
+			print("Auto pilot engaged!")
 
-                print("Looking for obstacles")
-                moveDatServo()
-                avoidCollision()
-                GOGO()
-        else:
-                print("Manual Mode")
-                # readAndGo();
+			print("Looking for obstacles")
+			moveDatServo()
+			avoidCollision()
+			GOGO()
+	else:
+			print("Manual Mode")
+			readAndGo();

@@ -1,7 +1,7 @@
 import Ping
 import time
 
-PING_PIN = 8
+PING_PIN = 16
 
 Ping.attach(PING_PIN)
 
