@@ -1,5 +1,12 @@
 = Thumpbot Workspace =
 
-The Thumpbot (a.k.a. Thumper, a.k.a. Thumpboy) is a somewhat-autonomous rolling robot that drives around and tries not to crash. Thumper is the de-facto platform for robot-tinkering of Harrington Hacknight Club. This repo contains programs for controlling Thumpbot (in past, present, and future iterations), as well as various other odd and ends.
+The Thumpbot (a.k.a. Thumper, a.k.a. Thumpboy) is a somewhat-autonomous rolling robot that drives around and tries not to crash. Thumper is the de-facto platform for robot-tinkering of Harrington Hacknight Club. This repo contains programs for controlling Thumpbot in past, present, and future iterations.
 
 https://www.instagram.com/p/x0ke4qsZbQ[Video of Thumpbot in Action]
+
+== Arduino ==
+
+link:arduino/[arduino/] contains sketch for controlling via Arduino Uno.
+
+== Raspberry Pi ==
+link:python/[python/] contains python script for controlling via Raspberry Pi.
